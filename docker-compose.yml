@@ -1,0 +1,12 @@
+version: '3.7'
+services: 
+  examples:
+    image: php:8.2-cli
+    working_dir: /server
+    command: php -S localhost:8000
+    volumes:
+      - './:/server'
+    ports:
+      - "8000:8000"
+volumes:
+  mongo_data:

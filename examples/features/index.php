@@ -1,6 +1,6 @@
 <?php 
 
-require ("../../storm.php");
+require("../../storm2.php");
 
 //TODO
 // request
@@ -28,10 +28,13 @@ $app->filter("filter");
 //ob start
 //ob end  to get function
 // it there is no defined [action] by default it's index
-$app->route("/", function ($request) {});
-$app->route("/version", function ($request) {});
-$app->route("/version-text", function ($request) {});
-$app->route("/version-json", function ($request) {});
+//[file]
+//[controller] and [action]
+//[directory]
+$app->route("/", function ($request) { echo "homepage"; });
+$app->route("/version", function ($request) { echo "version"; });
+$app->route("/version-text", function ($request) { echo "version-text"; });
+$app->route("/version-json", function ($request) { echo "version-json"; });
 $app->route("api/[file]", "app");
 $app->route("api/[file]/[action]", "app");
 $app->route("api/product/[action]/{name}", "app"); 

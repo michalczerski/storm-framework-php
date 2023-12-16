@@ -1,0 +1,11 @@
+FROM php:cli-alpine3.18
+
+ENV APP_ENV=development
+
+RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
+
+RUN apk add autoconf
+RUN apk add build-base
+RUN pecl install mongodb
+RUN docker-php-ext-enable mongodb
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer

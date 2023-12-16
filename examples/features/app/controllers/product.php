@@ -1,8 +1,9 @@
 <?php 
+class Product {
 
+    function count() {
 
-class product {
-
+    }
 }
 
 ?>

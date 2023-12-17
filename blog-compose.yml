@@ -1,13 +1,13 @@
 version: '3.7'
 services:
   mongo:
-    build: examples/blog/docker/mongo
+    build: docker/mongo
     command: mongod --quiet --logpath /dev/null
     ports:
       - "28000:27017"
   web:
-    build: examples/blog/docker/php
-    working_dir: /storm/examples/blog/apache
+    build: docker/php
+    working_dir: /storm/apache
     command: php -S 0.0.0.0:80
     volumes:
       - './:/storm'

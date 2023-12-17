@@ -176,6 +176,10 @@ class App {
             err($route != null, 404, "Route doesn't exist");
 
             $this->handleRoute($route);
+
+            $stream = fopen('php://stderr', 'w');
+            fwrite($stream, "elo z fm \n");
+
         }
         catch(Exception $e) {
             echo "CATCHED"; die;

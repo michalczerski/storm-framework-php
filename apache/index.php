@@ -1,8 +1,8 @@
 <?php
 
-require("../../../storm.php");
+require("../storm.php");
 
-$app = storm\app("../src/app");
+$app = storm\app("../src");
 
 $app->directories([
     '@service.backend' => 'backend/services',

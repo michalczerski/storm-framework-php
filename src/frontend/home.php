@@ -1,7 +1,7 @@
 <?php
 
-use function storm\page;
+use function storm\view;
 
 function getIndex() {
-    return page("@view-frontend/home.view");
+    return view("@view-frontend/home.view");
 }

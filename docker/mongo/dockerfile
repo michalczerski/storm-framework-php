@@ -1,5 +1,0 @@
-FROM mongo:7
-
-ENV MONGO_INITDB_DATABASE blog
-
-COPY user.seed.js /docker-entrypoint-initdb.d/

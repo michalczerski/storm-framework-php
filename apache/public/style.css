@@ -1,16 +1,9 @@
-.form-signin {
-    max-width: 330px;
-}
-.form-signin .form-floating:focus-within {
-    z-index: 2;
-}
-.form-signin #username {
-    margin-bottom: -1px;
-    border-bottom-right-radius: 0;
-    border-bottom-left-radius: 0;
-}
-.form-signin #password {
-    margin-bottom: 10px;
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+.shadow-tl {
+    box-shadow: 0 -10px 20px -5px #0000001a,
+    -10px 0 20px -5px #0000001a;
 }

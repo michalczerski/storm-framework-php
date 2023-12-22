@@ -1,1 +1,3 @@
-<?php
+{
+  "mongo": "mongodb://mongo:27017"
+}

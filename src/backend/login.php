@@ -1,18 +1,26 @@
 <?php
 
     use function storm\import;
-    use function storm\page;
+    use function storm\view;
 
-    import("@service.backend/editor.service");
+    import("@services.backend/editor.service");
 
-    function getIndex() {
-        $user = signInUser("test", "test");
-        print_r($user);
-        return page('@view-backend/login.view');
+    function getIndex($req, $res, $di) {
+        return view('@view-backend/login.view');
     }
 
-    function postIndex($request) {
-        return page('@view-backend/login.view', ['message' => "User doesn't exists"] );
+    function postIndex($request, $response) {
+        $username = $request->parameters['username'];
+        $password = $request->parameters['password'];
+        $session = signInUser($username, $password);
+        if ($session) {
+            $response->setCookie('sid', $session);
+            $response->redirect("/admin");
+        }
+
+        $message = "Password is incorrect or user doesn't exist";
+
+        return view('@view-backend/login.view', ['message' => $message] );
     }
 
 

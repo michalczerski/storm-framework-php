@@ -1,22 +1,32 @@
 <?php
 
 require("../storm.php");
+require('../src/infrastructure/hooks.php');
 
-$app = storm\app("../src");
+global $addDatabaseHook;
+global $addUserHook;
+global $addAuthenticationHook;
+
+$app = storm\app('../src');
 
 $app->directories([
-    '@service.backend' => 'backend/services',
-    '@repository.backend' => 'backend/repositories',
-    '@view-backend' => "backend/views",
+    '@services.backend' => 'backend/services',
+    '@view-backend' => "template/backend",
 
-    '@view-frontend' => "frontend/views"
+    '@view-frontend' => "template/frontend"
 ]);
+
+$app->view->layouts(['backend' => '@view-backend/layout.view.php']);
 
 $app->settings("settings.$app->env.json");
 
+$app->hook('before', $addDatabaseHook);
+$app->hook('before', $addUserHook);
+$app->hook('before', $addAuthenticationHook);
+
 $app->route("/php", function() { phpinfo(); });
 
-$app->route("/admin", "backend/home");
+$app->route("/admin", "backend/posts");
 $app->route("/admin/[file]", "backend/[file]");
 
 $app->route("/", "frontend/home");

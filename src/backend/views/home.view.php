@@ -1,1 +1,0 @@
-<h1>ADMIN HOMEPAGE</h1>

@@ -21,12 +21,26 @@ function err($assert, $code, $message) {
     die;
 }
 
+function safeArrayValue($key, $array) {
+    return array_key_exists($key, $array) ? $_SERVER["CONTENT_TYPE"] : null;
+}
+
 function import($file) : void {
     $cwd = STORM::$instance->cwd;
-    $file = $file . ".php";
     $file = aliasPath($file);
-    exp(file_exists($file), 500, "IMPORT file failed [$file] doesn't exists");
-    require_once($file);
+    if (str_ends_with($file, "/*")) {
+        $dir = str_replace("/*", "", $file);
+        $files = scandir($dir);
+        foreach($files as $file) {
+            if (str_ends_with($file, ".php")) {
+                require_once($dir . "/" . $file);
+            }
+        }
+    } else {
+        $file = $file . ".php";
+        exp(file_exists($file), 500, "IMPORT file failed [$file] doesn't exists");
+        require_once($file);
+    }
 }
 
 function view($templateFileName, $data = []) {
@@ -80,6 +94,7 @@ class View {
         exp(file_exists($layoutFilePath), 500, "Layout [$layoutFilePath] doesn't exist");
 
         $layoutContent = file_get_contents($layoutFilePath);
+        $layoutContent = $this->compile($layoutContent);
         $content = preg_replace('/{% ?(\$content) ?%}/i', $content, $layoutContent);
 
         return $content;
@@ -127,6 +142,7 @@ class Request {
     public $postParameters = [];
     public $routeParameters = [];
     public $parameters = [];
+    public $body;
     public $uri;
 
     function __construct($requestUri, $routeParameters) {
@@ -137,6 +153,11 @@ class Request {
         $this->uri = $requestUri;
         $this->user = array_key_exists('user', $_COOKIE) ? $_COOKIE['user'] : null;
         $this->method = $_SERVER['REQUEST_METHOD'];
+
+        if (safeArrayValue("CONTENT_TYPE", $_SERVER) == "application/json") {
+            $data = file_get_contents('php://input');
+            $this->body = json_decode($data);
+        }
 
         unset($_GET);
         unset($_POST);

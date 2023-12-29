@@ -2,8 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
-
-.shadow-tl {
-    box-shadow: 0 -10px 20px -5px #0000001a,
-    -10px 0 20px -5px #0000001a;
+:focus {
+    @apply outline-0
 }
+
+#editable h3 {
+    @apply text-5xl mb-8 mr-[150px]
+}
+
+#editable .medium-editor-placeholder {
+    @apply text-slate-400
+}
+
+.spinner_S1WN{animation:spinner_MGfb .8s linear infinite;animation-delay:-.8s}
+.spinner_Km9P{animation-delay:-.65s}
+.spinner_JApP{animation-delay:-.5s}
+@keyframes spinner_MGfb{93.75%,100%{opacity:.2}}
+
+.btn {
+    @apply hover:bg-slate-100 px-4 py-2 font-semibold text-sm
+        bg-white text-slate-700 border border-slate-300 rounded-md shadow-sm
+}
+
+.btn[disabled] {
+    @apply bg-gray-200 text-gray-300 border-gray-100
+}
+
+.btn-group .btn-l {
+    @apply border-r-0 rounded-r-none
+}
+
+.btn-group .btn-r {
+    @apply border-l-0 rounded-l-none
+}
+
+
+

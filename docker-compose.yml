@@ -21,3 +21,4 @@ services:
           target: /usr/dev/
           ignore:
             - .idea
+            - .git

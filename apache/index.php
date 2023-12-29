@@ -12,6 +12,7 @@ $app = storm\app('../src');
 $app->directories([
     '@services.backend' => 'backend/services',
     '@view-backend' => "template/backend",
+    '@finders-backend' => 'backend/finders',
 
     '@view-frontend' => "template/frontend"
 ]);
@@ -26,8 +27,9 @@ $app->hook('before', $addAuthenticationHook);
 
 $app->route("/php", function() { phpinfo(); });
 
-$app->route("/admin", "backend/posts");
+$app->route("/admin", "backend/articles");
 $app->route("/admin/[file]", "backend/[file]");
+$app->route("/admin/[file]/[action]", "backend/[file]");
 
 $app->route("/", "frontend/home");
 $app->route("/[file]", "frontend/[file]");

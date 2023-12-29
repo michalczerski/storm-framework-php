@@ -31,8 +31,8 @@ $addUserHook = function($request, $response, $di) {
                 ['_id' => $sid],
                 ['$set' => ['validation' =>  $validation]]);
             $user['authenticated'] = true;
-            $user['userid'] = $session['userid'];
-            $user['username'] = $session['username'];
+            $user['id'] = $session['userid'];
+            $user['name'] = $session['username'];
         } else {
             $response->removeCookie('sid');
         }

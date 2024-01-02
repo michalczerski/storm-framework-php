@@ -4,7 +4,7 @@ use function storm\import;
 
 import("@services.backend/editor.service");
 
-function getIndex($req, $res, $di) {
+function index($req, $res, $di) {
     $sid = $req->getCookie('sid');
     $res->removeCookie('sid');
     signOut($sid);

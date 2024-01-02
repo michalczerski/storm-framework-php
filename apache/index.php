@@ -3,9 +3,7 @@
 require("../storm.php");
 require('../src/infrastructure/hooks.php');
 
-global $addDatabaseHook;
-global $addUserHook;
-global $addAuthenticationHook;
+global $addDatabaseHook, $addUserHook, $addAuthenticationHook, $addI18n;
 
 $app = storm\app('../src');
 
@@ -13,14 +11,15 @@ $app->directories([
     '@services.backend' => 'backend/services',
     '@view-backend' => "template/backend",
     '@finders-backend' => 'backend/finders',
-
     '@view-frontend' => "template/frontend"
 ]);
 
+$app->view->helpers('@/template/helpers.php');
 $app->view->layouts(['backend' => '@view-backend/layout.view.php']);
 
 $app->settings("settings.$app->env.json");
 
+$app->hook('before', $addI18n);
 $app->hook('before', $addDatabaseHook);
 $app->hook('before', $addUserHook);
 $app->hook('before', $addAuthenticationHook);

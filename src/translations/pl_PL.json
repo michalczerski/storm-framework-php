@@ -1,0 +1,8 @@
+{
+  "local": "pl_PL",
+  "dateFormat": "d-m-Y",
+  "dateTimeFormat": "d-m-Y H:i",
+  "currency": "PLN",
+
+  "hello": "cześć czołem z polskiego"
+}

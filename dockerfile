@@ -14,6 +14,10 @@ RUN apk add autoconf
 RUN apk add build-base
 RUN pecl install mongodb
 RUN docker-php-ext-enable mongodb
+#intl
+RUN apk add icu-dev
+RUN docker-php-ext-configure intl
+RUN docker-php-ext-install intl
 #COMPOSE
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 

@@ -7,7 +7,7 @@
 }
 
 #editable h3 {
-    @apply text-5xl mb-8 mr-[150px]
+    @apply text-4xl mb-8
 }
 
 #editable .medium-editor-placeholder {
@@ -20,7 +20,7 @@
 @keyframes spinner_MGfb{93.75%,100%{opacity:.2}}
 
 .btn {
-    @apply hover:bg-slate-100 px-4 py-2 font-semibold text-sm
+    @apply hover:bg-slate-100 px-4 py-1 font-semibold text-sm
         bg-white text-slate-700 border border-slate-300 rounded-md shadow-sm
 }
 

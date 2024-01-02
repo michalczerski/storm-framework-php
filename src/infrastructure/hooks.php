@@ -6,6 +6,11 @@ use MongoDB\Client;
 use MongoDB\BSON\ObjectId;
 use MongoDB\BSON\UTCDateTime;
 
+$addI18n = function ($request, $response, $di) {
+    $i18n = $di->i18n;
+    $i18n->load('@/translations/pl_PL.json');
+};
+
 $addDatabaseHook = function($request, $response, $di) {
     $settings = $di->settings->mongo;
     $client = new Client($settings);

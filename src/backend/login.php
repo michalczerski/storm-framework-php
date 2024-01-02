@@ -5,22 +5,21 @@
 
     import("@services.backend/editor.service");
 
-    function getIndex($req, $res, $di) {
-        return view('@view-backend/login.view');
-    }
+    function index($request, $response) {
+        $data = ['message' => null];
+        if ($request->isPost()) {
+            $username = $request->parameters['username'];
+            $password = $request->parameters['password'];
+            $session = signInUser($username, $password);
+            if ($session) {
+                $response->setCookie('sid', $session);
+                $response->redirect("/admin");
+            }
 
-    function postIndex($request, $response) {
-        $username = $request->parameters['username'];
-        $password = $request->parameters['password'];
-        $session = signInUser($username, $password);
-        if ($session) {
-            $response->setCookie('sid', $session);
-            $response->redirect("/admin");
+            $data['message'] = "Password is incorrect or user doesn't exist";
         }
 
-        $message = "Password is incorrect or user doesn't exist";
-
-        return view('@view-backend/login.view', ['message' => $message] );
+        return view('@view-backend/login.view', $data);
     }
 
 

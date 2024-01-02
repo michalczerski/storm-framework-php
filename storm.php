@@ -2,6 +2,7 @@
 
 namespace storm;
 
+use Cassandra\Date;
 
 class STORM { public static $instance;}
 
@@ -20,7 +21,6 @@ function err($assert, $code, $message) {
     echo "<h1>$code</h1>$message";
     die;
 }
-
 function safeArrayValue($key, $array) {
     return array_key_exists($key, $array) ? $_SERVER["CONTENT_TYPE"] : null;
 }
@@ -50,8 +50,14 @@ function view($templateFileName, $data = []) {
 class View {
     private $_layouts  = [];
 
+    private $helperFilePath;
+
     function layouts($templates) {
         $this->_layouts = $templates;
+    }
+
+    function helpers($helperFilePath) {
+        $this->helperFilePath = aliasPath($helperFilePath);
     }
 
     function view($templateFileName, $data = []) {
@@ -65,6 +71,7 @@ class View {
 
         $cachedTemplateFileName = md5($templateFileName) . '.php';
         $cachedTemplateFilePath = $appDirectory . "/.cache/$cachedTemplateFileName";
+
         if ($env == 'development' || !file_exists($cachedTemplateFilePath)) {
             exp(file_exists($templateFileName), 500, "VIEW doesn't exist $templateFileName");
             if (!is_dir($cacheDirectory)) mkdir($cacheDirectory);
@@ -80,31 +87,107 @@ class View {
         }
 
         extract($data, EXTR_OVERWRITE, 'wddx');
+
+        if ($this->helperFilePath) {
+            $expMessage = "HELPER [$this->helperFilePath] doesn't exist";
+            exp(file_exists($this->helperFilePath), 500, $expMessage);
+            include $this->helperFilePath;
+        }
+
         include $cachedTemplateFilePath;
     }
 
     private function putInLayout($content) {
-        preg_match('/{% ?(layout) ?\'?(.*?)\'? ?%}/i', $content, $matches);
+        preg_match('/@layout\s(.*?)\s/i', $content, $matches);
         if (!count($matches)) return $content;
-        exp(array_key_exists($matches[2], $this->_layouts), 500, "Layout [$matches[2]] doesn't exist");
+        exp(array_key_exists($matches[1], $this->_layouts), 500, "Layout [$matches[1]] doesn't exist");
         $content = str_replace($matches[0], '', $content);
 
-        $layoutFilePath = $this->_layouts[$matches[2]];
+        $layoutFilePath = $this->_layouts[$matches[1]];
         $layoutFilePath = aliasPath($layoutFilePath);
         exp(file_exists($layoutFilePath), 500, "Layout [$layoutFilePath] doesn't exist");
 
         $layoutContent = file_get_contents($layoutFilePath);
         $layoutContent = $this->compile($layoutContent);
-        $content = preg_replace('/{% ?(\$content) ?%}/i', $content, $layoutContent);
+        $content = preg_replace('/@template/i', $content, $layoutContent);
 
         return $content;
     }
 
     private function compile($content) {
-        $content = preg_replace('~\{{\s*(.+?)\s*\}}~is',
-            '<?php if(isset($1)) echo $1 ?>', $content);
+        $filterCompilationFunction = 'storm\_storm_preg_replace_function_filtering';
+        $i18nCompilationFunction = 'storm\_storm_preg_replace_function_i18n';
+
+        $content = preg_replace_callback('/{{\s*(.+?)\|\s*(.+?)}}/i',
+            $filterCompilationFunction, $content);
+        $content = preg_replace_callback('/{{\s*_(.+?)}}/i', $i18nCompilationFunction, $content);
+
+        $content = preg_replace('/{{\s*\$(.+?)\s*\}}/i', '<?php echo $$1 ?>', $content);
+        $content = preg_replace('/{{\s*(.+?)\s*\}}/i', '<?php echo storm\\\$1 ?>', $content);
+
+        $content = preg_replace('/@if\s*\((.*)\)/i', '<?php if($1): ?>', $content);
+        $content = preg_replace('/@else/i', '<?php else: ?>', $content);
+        $content = preg_replace('/@endif/i', '<?php endif; ?>', $content);
+
+        $content = preg_replace('/@foreach\s*\((.*)\)/i', '<?php foreach($1): ?>', $content);
+        $content = preg_replace('/@endforeach/i', '<?php endforeach; ?>', $content);
 
         return $content;
+    }
+}
+function _storm_preg_replace_function_i18n($matches) {
+    $arg = $matches[1];
+    $arg = trim($arg);
+
+    if (!str_starts_with($arg, '$')) {
+        $arg = '"' . $arg . '"';
+    }
+
+    return "<?php echo storm\_($arg) ?>";
+}
+
+function _storm_preg_replace_function_filtering($matches) {
+    $filterNodes = cleanExplode(' ', trim($matches[2]), 2);
+    $filterName = $filterNodes[0];
+    $filterArguments = $matches[1];
+    if (count($filterNodes) > 1) {
+        for($i = 1; $i < count($filterNodes); $i++) {
+            $arg = $filterNodes[$i];
+            if (is_numeric($arg))
+                $filterArguments .= ",$arg";
+            else
+                $filterArguments .= ",'$arg'";
+        }
+    }
+
+    return "<?php echo storm\\$filterName ($filterArguments) ?>";
+}
+
+class I18n {
+    public $local = 'us-US';
+    public $dateFormat = "Y-m-d";
+    public $dateTimeFormat = "Y-m-d H:i";
+    public $currency = "USD";
+    public $translations = [];
+
+    public function load($filePath) {
+        $path = aliasPath($filePath);
+        exp(file_exists($path), 500, "TRANSLATION file [$path] doesn't exist");
+        $this->translations = json_decode(file_get_contents($path), true);
+
+        foreach(['dateFormat', 'dateTimeFormat', 'currency', 'local'] as $key) {
+            if (array_key_exists($key, $this->translations)) {
+                $this->$key = $this->translations[$key];
+            }
+        }
+    }
+
+    public function translate($phrase){
+        if (array_key_exists($phrase, $this->translations)){
+            return $this->translations[$phrase];
+        }
+
+        return $phrase;
     }
 }
 
@@ -135,6 +218,47 @@ class Di implements \ArrayAccess {
     }
 }
 
+class RequestParameters implements \ArrayAccess {
+    public $parameters = [];
+
+    function __construct(...$parameterArrays) {
+        foreach ($parameterArrays as $array)
+            $this->parameters = array_merge($this->parameters, $array);
+    }
+
+    public function offsetGet($key): mixed {
+        if (!$this->offsetExists($key)) {
+            throw new \Exception("PARAMETER [$key] doesn't exist");
+        }
+        return $this->parameters[$key];
+    }
+
+    public function offsetSet($key, $value): void {
+        $this->parameters[$key] = $value;
+    }
+
+    public function offsetExists($key): bool {
+        return array_key_exists($key, $this->parameters);
+    }
+
+    public function offsetUnset(mixed $offset): void {
+        unset($this->parameters[$offset]);
+    }
+
+    public function exists(...$keys) {
+        foreach($keys as $key) {
+            if (!$this->exist($key)){
+                return false;
+            }
+        }
+
+        return true;
+    }
+    public function exist($key) {
+        return $this->offsetExists($key);
+    }
+}
+
 class Request {
     public $method;
     public $user;
@@ -149,7 +273,7 @@ class Request {
         $this->getParameters = $_GET;
         $this->postParameters = $_POST;
         $this->routeParameters = $routeParameters;
-        $this->parameters = array_merge($_GET, $_POST);
+        $this->parameters = new RequestParameters($_GET, $_POST, $routeParameters->parameters);
         $this->uri = $requestUri;
         $this->user = array_key_exists('user', $_COOKIE) ? $_COOKIE['user'] : null;
         $this->method = $_SERVER['REQUEST_METHOD'];
@@ -161,6 +285,10 @@ class Request {
 
         unset($_GET);
         unset($_POST);
+    }
+
+    function has($name) {
+
     }
 
     function hasCookie() {
@@ -211,6 +339,7 @@ class App {
     public $routes = [];
     public $view;
     public $di;
+    public $i18n;
 
     function __construct($directory) {
         $this->start = microtime(true);
@@ -220,6 +349,7 @@ class App {
         $this->cwd = getcwd();
         $this->view = new View();
         $this->di = new Di();
+        $this->di['i18n'] = $this->i18n = new I18n();
     }
     public function hook($executionStage, $fun) : void {
         if (!in_array($executionStage, ['before', 'after'])) {
@@ -351,7 +481,7 @@ class App {
         return null;
     }
 
-    private function getRouteExecutable(ExecutionRoute $route, $request) {
+    private function getRouteExecutable(ExecutionRoute $route) {
         if ($route->isCallable()) {
             return $route->callback;
         } else {
@@ -361,7 +491,7 @@ class App {
             include $file;
             ob_get_clean();
 
-            $function = $request->method . $route->parameters->action;
+            $function = $route->parameters->action;
             if (!function_exists($function)) { echo "500 - ACTION doesn't exist'"; die; }
             return $function;
         }
@@ -404,12 +534,57 @@ class ExecutionRoute {
     }
 }
 
-function getFromDi($key) {
+function __($key) {
     return STORM::$instance->di[$key];
 }
 
-function cleanExplode($delimiter, $string): array {
-    $partsUnclean = explode($delimiter, $string);
+function _($phrase) {
+    $i18n = STORM::$instance->i18n;
+    return $i18n->translate($phrase);
+}
+
+function date($date, $format = null) {
+    if (!$date) return '';
+    if (!is_object($date)) {
+        $date = new \DateTime($date);
+    }
+    if ($format == null) {
+        $i18n = __('i18n');
+        $format = $i18n->dateFormat;
+    }
+    return $date->format($format);
+}
+
+function datetime($date, $format = null) {
+    if (!$date) return '';
+    if (!is_object($date)) {
+        $date = new \DateTime($date);
+    }
+    if ($format == null) {
+        $i18n = __('i18n');
+        $format = $i18n->dateTimeFormat;
+    }
+    return $date->format($format);
+}
+
+function money($value, $currency = null) {
+    $i18n = __('i18n');
+    if (!$currency)
+        $currency = $i18n->currency;
+    $fmt = numfmt_create($i18n->local, \NumberFormatter::CURRENCY );
+    return numfmt_format_currency($fmt, $value, $currency);
+}
+
+function url($path, $args) {
+    if (count($args)) {
+        $path = $path . "?" . http_build_query($args);
+    }
+
+    return $path;
+}
+
+function cleanExplode($delimiter, $string, $limit = PHP_INT_MAX): array {
+    $partsUnclean = explode($delimiter, $string, $limit);
     $parts = [];
     foreach ($partsUnclean as $part) {
         if ($part != "")
@@ -421,7 +596,10 @@ function cleanExplode($delimiter, $string): array {
 function aliasPath($templatePath) {
     $appDirectory = STORM::$instance->directory;
     $aliases = STORM::$instance->aliases;
-    if (str_starts_with($templatePath, '@')) {
+    if (str_starts_with($templatePath, "@/")) {
+        return str_replace("@", $appDirectory, $templatePath);
+    }
+    else if (str_starts_with($templatePath, '@')) {
         $firstSeparator = strpos($templatePath, "/");
         if ($firstSeparator) {
             $alias = substr($templatePath, 0, $firstSeparator);
@@ -438,3 +616,4 @@ function aliasPath($templatePath) {
 
     return $templatePath;
 }
+

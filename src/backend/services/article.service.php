@@ -2,11 +2,11 @@
 
 use MongoDB\BSON\UTCDateTime;
 use MongoDB\BSON\ObjectId;
-use function storm\getFromDi;
+use function storm\__;
 
 function addArticle($article) {
-    $db = getFromDi('db');
-    $user = getFromDi('user');
+    $db = __('db');
+    $user = __('user');
 
     $now = new UTCDateTime(new DateTime());
 
@@ -34,21 +34,13 @@ function addArticle($article) {
     }
 }
 
-function publish($articleId) {
-    setPublishStatus($articleId, true);
-}
-
-function unpublish($articleId) {
-    setPublishStatus($articleId, false);
-}
-
 function setPublishStatus($articleId, $isPublished) {
-    $data = ['isPublished' => $isPublished];
+    $data = ['isPublished' => $isPublished, 'publishedAt' => null];
     if ($isPublished) {
         $now = new UTCDateTime(new DateTime());
         $data['publishedAt'] = $now;
     }
-    $db = getFromDi('db');
+    $db = __('db');
     $db->articles->updateOne(
         ['_id' => new ObjectId($articleId)],
         ['$set' => $data]);

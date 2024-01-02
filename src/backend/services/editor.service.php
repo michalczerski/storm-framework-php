@@ -1,10 +1,10 @@
 <?php
 
-use function storm\getFromDi;
+use function storm\__;
 use MongoDB\BSON\UTCDateTime;
 function signInUser($username, $password, $remeberMe = false) {
     $password = hashPassword($password);
-    $db = getFromDi('db');
+    $db = __('db');
     $editor = $db->users->findOne(['name' => $username, 'password' => $password]);
     if ($editor == null) return false;
 
@@ -22,7 +22,7 @@ function signInUser($username, $password, $remeberMe = false) {
 }
 
 function signOut($sessionId) {
-    $db = getFromDi('db');
+    $db = __('db');
 }
 
 function hashPassword(string $password) : string {

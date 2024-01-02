@@ -39,7 +39,9 @@
                                     focus:ring-inset focus:ring-blue-400">
                         </div>
                     </div>
+                    @if ($message)
                     <div>{{ $message }}</div>
+                    @endif
                     <div class="mt-12">
                         <button type="submit" class="btn w-full">Sign in</button>
                     </div>

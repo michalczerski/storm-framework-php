@@ -15,8 +15,8 @@
                     </a>
                 </td>
                 <td>{{ $article->author->username }}</td>
-                <td>
-                    {{ $article->publishedAt | date }}
+                <td class="text-right">
+                    {{ $article->publishedAt | datetime }}
                 </td>
             </tr>
             @endforeach

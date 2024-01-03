@@ -28,7 +28,7 @@
                     </div>
                     <div class="hover:text-slate-600 hover:pt-[1px] hover:border-b border-b-blue-300
                                 flex items-center mr-3">
-                        <a href="" class="px-1">Users</a>
+                        <a href="/admin/editors" class="px-1">Users</a>
                     </div>
                 </div>
                 <div class="grow flex justify-end mr-5">

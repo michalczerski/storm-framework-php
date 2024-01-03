@@ -2,8 +2,6 @@
 
 namespace storm;
 
-use Cassandra\Date;
-
 class STORM { public static $instance;}
 
 function app($appDirectory) {

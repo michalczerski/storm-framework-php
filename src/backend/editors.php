@@ -3,5 +3,5 @@
 use function storm\view;
 
 function index() {
-    return view("@view-frontend/home.view");
+    return view("@view-backend/editors.view");
 }

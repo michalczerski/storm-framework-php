@@ -1,8 +1,6 @@
 <?php
 
-use function storm\import;
-
-import("@services.backend/editor.service");
+import("@components-backend/*");
 
 function index($req, $res, $di) {
     $sid = $req->getCookie('sid');

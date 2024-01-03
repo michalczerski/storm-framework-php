@@ -2,7 +2,6 @@
 
 use MongoDB\BSON\UTCDateTime;
 use MongoDB\BSON\ObjectId;
-use function storm\__;
 
 function addArticle($article) {
     $db = __('db');

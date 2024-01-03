@@ -1,6 +1,5 @@
 <?php
 
-use function storm\__;
 use MongoDB\BSON\ObjectId;
 
 function getArticles() {

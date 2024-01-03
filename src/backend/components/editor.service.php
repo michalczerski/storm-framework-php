@@ -1,6 +1,5 @@
 <?php
 
-use function storm\__;
 use MongoDB\BSON\UTCDateTime;
 function signInUser($username, $password, $remeberMe = false) {
     $password = hashPassword($password);

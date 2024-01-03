@@ -5,10 +5,10 @@ require('../src/infrastructure/hooks.php');
 
 global $addDatabaseHook, $addUserHook, $addAuthenticationHook, $addI18n;
 
-$app = storm\app('../src');
+$app = app('../src');
 
 $app->directories([
-    '@services.backend' => 'backend/services',
+    '@components-backend' => 'backend/components',
     '@view-backend' => "template/backend",
     '@finders-backend' => 'backend/finders',
     '@view-frontend' => "template/frontend"

@@ -1,7 +1,5 @@
 <?php
 
-namespace storm;
-
 class STORM { public static $instance;}
 
 function app($appDirectory) {
@@ -9,7 +7,7 @@ function app($appDirectory) {
     return STORM::$instance;
 }
 
-function exp($assert, $code, $message) {
+function _exp($assert, $code, $message) {
     if ($assert) return;
     throw new \Exception($message, $code);
 }
@@ -36,13 +34,81 @@ function import($file) : void {
         }
     } else {
         $file = $file . ".php";
-        exp(file_exists($file), 500, "IMPORT file failed [$file] doesn't exists");
+        _exp(file_exists($file), 500, "IMPORT file failed [$file] doesn't exists");
         require_once($file);
     }
 }
 
 function view($templateFileName, $data = []) {
     STORM::$instance->view->view($templateFileName, $data);
+}
+
+class ViewCompiler {
+    public $file;
+    public $_layouts;
+
+    function __construct($file, $layout) {
+        $this->file = $file;
+        $this->_layouts = $layout;
+    }
+
+    public function compileTo($destination) {
+        $content = $this->compile();
+        file_put_contents($destination, $content);
+    }
+
+    public function compile() {
+        $content = file_get_contents($this->file);
+        $content = $this->_compile($content);
+        $content = $this->putInLayout($content);
+        return $content;
+    }
+
+    private function putInLayout($content) {
+        preg_match('/@layout\s(.*?)\s/i', $content, $matches);
+        if (!count($matches)) return $content;
+        _exp(array_key_exists($matches[1], $this->_layouts), 500, "Layout [$matches[1]] doesn't exist");
+        $content = str_replace($matches[0], '', $content);
+
+        $layoutFilePath = $this->_layouts[$matches[1]];
+        $layoutFilePath = aliasPath($layoutFilePath);
+        _exp(file_exists($layoutFilePath), 500, "Layout [$layoutFilePath] doesn't exist");
+
+        $layoutContent = file_get_contents($layoutFilePath);
+        $layoutContent = $this->_compile($layoutContent, $layoutFilePath);
+        $content = preg_replace('/@template/i', $content, $layoutContent);
+
+        return $content;
+    }
+
+    private function _compile($content) {
+        $filterCompilationFunction = '_storm_preg_replace_function_filtering';
+        $i18nCompilationFunction = '_storm_preg_replace_function_i18n';
+        $includeCompilationFunction = '_storm_preg_replace_function_include';
+
+        $content = preg_replace_callback('/{{\s*(.+?)\|\s*(.+?)}}/i',
+            $filterCompilationFunction, $content);
+        $content = preg_replace_callback('/{{\s*_(.+?)}}/i', $i18nCompilationFunction, $content);
+
+        $content = preg_replace('/{{\s*\$(.+?)\s*\}}/i', '<?php echo $$1 ?>', $content);
+        $content = preg_replace('/{{\s*(.+?)\s*\}}/i', '<?php echo $1 ?>', $content);
+
+        $content = preg_replace('/@if\s*\((.*)\)/i', '<?php if($1): ?>', $content);
+        $content = preg_replace('/@else/i', '<?php else: ?>', $content);
+        $content = preg_replace('/@endif/i', '<?php endif; ?>', $content);
+
+        $content = preg_replace_callback('/@include\s*(.*)/i', function($matches) {
+            $file = dirname($this->file) . "/" . trim($matches[1]) . ".php";
+            _exp(file_exists($file), 500, "Template [$file] doesn't exist");
+            $compiler = new ViewCompiler($file, $this->_layouts);
+            return $compiler->compile();
+        }, $content);
+
+        $content = preg_replace('/@foreach\s*\((.*)\)/i', '<?php foreach($1): ?>', $content);
+        $content = preg_replace('/@endforeach/i', '<?php endforeach; ?>', $content);
+
+        return $content;
+    }
 }
 
 class View {
@@ -71,68 +137,27 @@ class View {
         $cachedTemplateFilePath = $appDirectory . "/.cache/$cachedTemplateFileName";
 
         if ($env == 'development' || !file_exists($cachedTemplateFilePath)) {
-            exp(file_exists($templateFileName), 500, "VIEW doesn't exist $templateFileName");
+            _exp(file_exists($templateFileName), 500, "VIEW doesn't exist $templateFileName");
             if (!is_dir($cacheDirectory)) mkdir($cacheDirectory);
 
-            log("compiling template [$templateFileName] \n");
+            _log("compiling template [$templateFileName] \n");
 
-            $content = file_get_contents($templateFileName);
-            $content = $this->compile($content);
-
-            $content = $this->putInLayout($content);
-
-            file_put_contents($cachedTemplateFilePath, $content);
+            $compiler = new ViewCompiler($templateFileName, $this->_layouts);
+            $compiler->compileTo($cachedTemplateFilePath);
         }
 
         extract($data, EXTR_OVERWRITE, 'wddx');
 
         if ($this->helperFilePath) {
             $expMessage = "HELPER [$this->helperFilePath] doesn't exist";
-            exp(file_exists($this->helperFilePath), 500, $expMessage);
+            _exp(file_exists($this->helperFilePath), 500, $expMessage);
             include $this->helperFilePath;
         }
 
         include $cachedTemplateFilePath;
     }
-
-    private function putInLayout($content) {
-        preg_match('/@layout\s(.*?)\s/i', $content, $matches);
-        if (!count($matches)) return $content;
-        exp(array_key_exists($matches[1], $this->_layouts), 500, "Layout [$matches[1]] doesn't exist");
-        $content = str_replace($matches[0], '', $content);
-
-        $layoutFilePath = $this->_layouts[$matches[1]];
-        $layoutFilePath = aliasPath($layoutFilePath);
-        exp(file_exists($layoutFilePath), 500, "Layout [$layoutFilePath] doesn't exist");
-
-        $layoutContent = file_get_contents($layoutFilePath);
-        $layoutContent = $this->compile($layoutContent);
-        $content = preg_replace('/@template/i', $content, $layoutContent);
-
-        return $content;
-    }
-
-    private function compile($content) {
-        $filterCompilationFunction = 'storm\_storm_preg_replace_function_filtering';
-        $i18nCompilationFunction = 'storm\_storm_preg_replace_function_i18n';
-
-        $content = preg_replace_callback('/{{\s*(.+?)\|\s*(.+?)}}/i',
-            $filterCompilationFunction, $content);
-        $content = preg_replace_callback('/{{\s*_(.+?)}}/i', $i18nCompilationFunction, $content);
-
-        $content = preg_replace('/{{\s*\$(.+?)\s*\}}/i', '<?php echo $$1 ?>', $content);
-        $content = preg_replace('/{{\s*(.+?)\s*\}}/i', '<?php echo storm\\\$1 ?>', $content);
-
-        $content = preg_replace('/@if\s*\((.*)\)/i', '<?php if($1): ?>', $content);
-        $content = preg_replace('/@else/i', '<?php else: ?>', $content);
-        $content = preg_replace('/@endif/i', '<?php endif; ?>', $content);
-
-        $content = preg_replace('/@foreach\s*\((.*)\)/i', '<?php foreach($1): ?>', $content);
-        $content = preg_replace('/@endforeach/i', '<?php endforeach; ?>', $content);
-
-        return $content;
-    }
 }
+
 function _storm_preg_replace_function_i18n($matches) {
     $arg = $matches[1];
     $arg = trim($arg);
@@ -141,7 +166,7 @@ function _storm_preg_replace_function_i18n($matches) {
         $arg = '"' . $arg . '"';
     }
 
-    return "<?php echo storm\_($arg) ?>";
+    return "<?php echo _($arg) ?>";
 }
 
 function _storm_preg_replace_function_filtering($matches) {
@@ -158,7 +183,7 @@ function _storm_preg_replace_function_filtering($matches) {
         }
     }
 
-    return "<?php echo storm\\$filterName ($filterArguments) ?>";
+    return "<?php echo $filterName ($filterArguments) ?>";
 }
 
 class I18n {
@@ -170,7 +195,7 @@ class I18n {
 
     public function load($filePath) {
         $path = aliasPath($filePath);
-        exp(file_exists($path), 500, "TRANSLATION file [$path] doesn't exist");
+        _exp(file_exists($path), 500, "TRANSLATION file [$path] doesn't exist");
         $this->translations = json_decode(file_get_contents($path), true);
 
         foreach(['dateFormat', 'dateTimeFormat', 'currency', 'local'] as $key) {
@@ -372,7 +397,7 @@ class App {
     }
 
     public function run(): void {
-        function log($message) {
+        function _log($message) {
             $stream = fopen('php://stderr', 'w');
             fwrite($stream, $message);
         }
@@ -386,9 +411,9 @@ class App {
             $request = new Request($requestUri, $route->parameters);
             $response = new Response();
 
-            exp($route != null, 404, "Route doesn't exist");
+            _exp($route != null, 404, "Route doesn't exist");
 
-            log("[request: $requestUri] [query: $queryString] [route: $route->pattern] \n");
+            _log("[request: $requestUri] [query: $queryString] [route: $route->pattern] \n");
 
             foreach($this->hooks['before'] as $hook) {
                 $hook($request, $response, $this->di);
@@ -398,12 +423,12 @@ class App {
             $result = $executable($request, $response, $this->di);
 
             $elapsed = round(microtime(true) - $this->start, 3);
-            log("time elapsed $elapsed \n");
+            _log("time elapsed $elapsed \n");
 
             echo $result;
         }
         catch(Exception $e) {
-            echo "CATCHED"; die;
+            print_r($e); die;
         }
     }
 
@@ -541,7 +566,7 @@ function _($phrase) {
     return $i18n->translate($phrase);
 }
 
-function date($date, $format = null) {
+function _date($date, $format = null) {
     if (!$date) return '';
     if (!is_object($date)) {
         $date = new \DateTime($date);
@@ -607,7 +632,7 @@ function aliasPath($templatePath) {
             $path = '';
         }
 
-        exp(array_key_exists($alias, $aliases), 500, "Alias [$alias] doesn't exist" );
+        _exp(array_key_exists($alias, $aliases), 500, "Alias [$alias] doesn't exist" );
 
         $templatePath = $appDirectory . "/" . $aliases[$alias] . $path;
     }

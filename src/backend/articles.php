@@ -1,10 +1,6 @@
 <?php
 
-use function storm\import;
-use function storm\view;
-
-import("@services.backend/*");
-import("@finders-backend/*");
+import("@components-backend/*");
 
 function index($req, $res) {
     $articles = getArticles();

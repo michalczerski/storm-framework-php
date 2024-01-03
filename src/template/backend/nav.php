@@ -1,6 +1,12 @@
 <?php
     $user = __('user');
     $username = $user['name'];
+    $request = __('request');
+
+    $uri = $request->uri;
+    $uri = $uri == '/admin' ? '/admin/articles' : $uri;
+    $items = ["/admin/articles" => "Articles", "/admin/users" => "Users"]
+
 ?>
 <nav class="bg-white border-b h-16 text-sm font-medium text-slate-500">
     <div class="container flex justify-between mx-auto h-full relative items-center">
@@ -9,13 +15,19 @@
         </a>
         <div class="ml-[90px] text-slate-500 flex h-full box-border">
             <a href="/admin" class="mr-7 text-slate-400 flex items-center">Storm CMS</a>
-            <div class="flex items-center pt-[1px] border-b border-b-blue-400 mr-3 text-slate-800">
-                <a href="/admin/articles" class="px-1 border-b-blue-300">Articles</a>
-            </div>
-            <div class="hover:text-slate-600 hover:pt-[1px] hover:border-b border-b-blue-300
-                                flex items-center mr-3">
-                <a href="/admin/users" class="px-1">Users</a>
-            </div>
+
+            @foreach($items as $url => $name)
+                @if ($url == $uri)
+                    <div class="flex items-center pt-[1px] border-b border-b-blue-400 mr-3 text-slate-800">
+                        <a href="{{ $url }}" class="px-1 border-b-blue-300">{{ $name }}</a>
+                    </div>
+                @else
+                    <div class="hover:text-slate-600 hover:pt-[1px] hover:border-b border-b-blue-300
+                                                flex items-center mr-3">
+                        <a href="{{ $url }}" class="px-1">{{ $name }}</a>
+                    </div>
+                @endif
+            @endforeach
         </div>
         <div class="grow flex justify-end mr-5">
                     <span class="rounded-l-md border-l border-t border-b pt-[2px] pl-1">

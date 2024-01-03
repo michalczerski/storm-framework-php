@@ -411,6 +411,8 @@ class App {
             $request = new Request($requestUri, $route->parameters);
             $response = new Response();
 
+            $this->di['request'] = $request;
+
             _exp($route != null, 404, "Route doesn't exist");
 
             _log("[request: $requestUri] [query: $queryString] [route: $route->pattern] \n");
